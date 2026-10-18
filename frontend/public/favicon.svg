@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="gopuramGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF9933"/>
+      <stop offset="50%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#138808"/>
+    </linearGradient>
+    <filter id="glass" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#F8FAFC"/>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="white" fill-opacity="0.8" stroke="url(#gopuramGrad)" stroke-width="2"/>
+  <!-- Modern Star + Location Mark -->
+  <path d="M32 10L37.5 21.5L50 23L41 31.5L43 44L32 38L21 44L23 31.5L14 23L26.5 21.5L32 10Z" fill="url(#gopuramGrad)" />
+  <circle cx="32" cy="27" r="5" fill="#FFFFFF"/>
+  <path d="M22 52C26 49 38 49 42 52" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+</svg>
