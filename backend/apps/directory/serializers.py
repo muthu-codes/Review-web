@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     District, Town, Locality, Category, SubCategory,
-    Establishment, EstablishmentSuggestion, ListingCorrection
+    Establishment, EstablishmentSuggestion, ListingCorrection, DataImportRun
 )
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -60,6 +60,8 @@ class EstablishmentListSerializer(serializers.ModelSerializer):
             'review_count',
             'verification_status',
             'status',
+            'source_name',
+            'source_attribution',
             'has_verified_complaint_channel',
             'created_at',
         ]
@@ -99,6 +101,14 @@ class EstablishmentDetailSerializer(serializers.ModelSerializer):
             'business_hours',
             'verification_status',
             'status',
+            'source_type',
+            'source_name',
+            'source_id',
+            'source_url',
+            'source_attribution',
+            'first_imported_at',
+            'last_imported_at',
+            'operational_status',
             'average_rating',
             'review_count',
             'rating_distribution',
@@ -138,3 +148,26 @@ class ListingCorrectionSerializer(serializers.ModelSerializer):
             'field_to_correct', 'proposed_value', 'reason', 'status', 'created_at'
         ]
         read_only_fields = ['id', 'status', 'created_at']
+
+class DataImportRunSerializer(serializers.ModelSerializer):
+    initiated_by_name = serializers.CharField(source='initiated_by.email', read_only=True)
+
+    class Meta:
+        model = DataImportRun
+        fields = [
+            'id',
+            'source_name',
+            'started_at',
+            'completed_at',
+            'status',
+            'is_dry_run',
+            'features_examined',
+            'records_inserted',
+            'records_updated',
+            'records_skipped',
+            'records_rejected',
+            'duration_seconds',
+            'report_summary',
+            'errors',
+            'initiated_by_name',
+        ]

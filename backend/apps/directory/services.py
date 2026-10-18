@@ -22,7 +22,12 @@ def detect_potential_duplicates(name, town_id_or_obj, address=""):
         if isinstance(town_id_or_obj, Town):
             qs = qs.filter(town=town_id_or_obj)
         else:
-            qs = qs.filter(town_id=town_id_or_obj)
+            try:
+                import uuid
+                uuid_obj = uuid.UUID(str(town_id_or_obj))
+                qs = qs.filter(town_id=uuid_obj)
+            except (ValueError, TypeError):
+                qs = qs.filter(town__slug=str(town_id_or_obj))
 
     potential_matches = []
     for est in qs[:100]:

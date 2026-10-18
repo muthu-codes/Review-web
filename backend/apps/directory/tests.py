@@ -168,3 +168,136 @@ St Johns Higher Secondary School,செயிண்ட் ஜான்ஸ் ப
         created_est = Establishment.objects.get(name='Tamirabarani Riverwalk Park')
         self.assertEqual(created_est.status, 'pending_verification')
         self.assertEqual(created_est.source_type, 'user_suggestion')
+
+    def test_boundary_validation_rules(self):
+        from apps.directory.ingestion.boundary import is_point_in_tirunelveli
+        # Inside Tirunelveli
+        self.assertTrue(is_point_in_tirunelveli(8.728, 77.708)) # Tirunelveli City
+        self.assertTrue(is_point_in_tirunelveli(8.706, 77.457)) # Ambasamudram
+        self.assertTrue(is_point_in_tirunelveli(8.378, 77.614)) # Valliyur
+        # Outside Tirunelveli
+        self.assertFalse(is_point_in_tirunelveli(13.082, 80.270)) # Chennai
+        self.assertFalse(is_point_in_tirunelveli(9.925, 78.119))  # Madurai
+        self.assertFalse(is_point_in_tirunelveli(8.764, 78.134))  # Thoothukudi Port
+
+    def test_category_tag_mapping(self):
+        from apps.directory.ingestion.category_mapper import map_osm_tags_to_category_slug
+        self.assertEqual(map_osm_tags_to_category_slug({'amenity': 'hospital'}), 'hospitals')
+        self.assertEqual(map_osm_tags_to_category_slug({'amenity': 'school'}), 'schools')
+        self.assertEqual(map_osm_tags_to_category_slug({'amenity': 'college'}), 'colleges')
+        self.assertEqual(map_osm_tags_to_category_slug({'amenity': 'restaurant'}), 'hotels-restaurants')
+        self.assertEqual(map_osm_tags_to_category_slug({'amenity': 'bank'}), 'banks')
+        self.assertEqual(map_osm_tags_to_category_slug({'amenity': 'place_of_worship'}), 'temples')
+        self.assertEqual(map_osm_tags_to_category_slug({'shop': 'supermarket'}), 'supermarkets')
+        self.assertEqual(map_osm_tags_to_category_slug({'shop': 'clothes'}), 'shops')
+
+    def test_ingestion_dry_run_does_not_commit(self):
+        from apps.directory.ingestion.importer import execute_place_import
+        initial_count = Establishment.objects.count()
+        sample_records = [{
+            'source_name': 'osm',
+            'source_id': 'node/999901',
+            'name': 'Test Dry Run Clinic',
+            'category_slug': 'hospitals',
+            'town_slug': 'tirunelveli-city',
+            'latitude': 8.728,
+            'longitude': 77.708,
+            'address_line1': 'Test Street',
+            'tags': {'amenity': 'clinic', 'name': 'Test Dry Run Clinic'},
+        }]
+        run_obj, summary = execute_place_import(sample_records, dry_run=True)
+        self.assertEqual(summary['records_inserted'], 1)
+        self.assertEqual(Establishment.objects.count(), initial_count)
+        self.assertTrue(run_obj.is_dry_run)
+
+    def test_ingestion_live_and_idempotency(self):
+        from apps.directory.ingestion.importer import execute_place_import
+        sample_records = [{
+            'source_name': 'osm',
+            'source_id': 'node/999902',
+            'source_url': 'https://www.openstreetmap.org/node/999902',
+            'name': 'Idempotent Test Pharmacy',
+            'tamil_name': 'டெஸ்ட் மருந்தகம்',
+            'category_slug': 'hospitals',
+            'town_slug': 'tirunelveli-city',
+            'latitude': 8.729,
+            'longitude': 77.709,
+            'address_line1': '10 Car Street',
+            'phone': '0462-2345678',
+            'tags': {'amenity': 'pharmacy', 'name': 'Idempotent Test Pharmacy'},
+        }]
+        # First Run: Inserts
+        run1, sum1 = execute_place_import(sample_records, dry_run=False)
+        self.assertEqual(sum1['records_inserted'], 1)
+        self.assertEqual(sum1['records_updated'], 0)
+        est = Establishment.objects.get(source_id='node/999902')
+        self.assertEqual(est.status, 'pending_verification')
+        self.assertEqual(est.verification_status, 'listed')
+        self.assertEqual(est.phone, '0462-2345678')
+
+        # Second Run with updated phone: Updates without creating duplicate
+        sample_records[0]['phone'] = '0462-9999999'
+        run2, sum2 = execute_place_import(sample_records, dry_run=False, update_existing=True)
+        self.assertEqual(sum2['records_inserted'], 0)
+        self.assertEqual(sum2['records_updated'], 1)
+        self.assertEqual(Establishment.objects.filter(source_id='node/999902').count(), 1)
+        est.refresh_from_db()
+        self.assertEqual(est.phone, '0462-2345678') # preserved existing phone
+
+    def test_ingestion_boundary_rejection(self):
+        from apps.directory.ingestion.importer import execute_place_import
+        initial_count = Establishment.objects.count()
+        outside_record = [{
+            'source_name': 'osm',
+            'source_id': 'node/999903',
+            'name': 'Chennai Central Station',
+            'category_slug': 'public-places',
+            'town_slug': 'tirunelveli-city',
+            'latitude': 13.0827,
+            'longitude': 80.2707, # Chennai coords
+            'tags': {'railway': 'station', 'name': 'Chennai Central Station'},
+        }]
+        run, summary = execute_place_import(outside_record, dry_run=False)
+        self.assertEqual(summary['records_inserted'], 0)
+        self.assertEqual(summary['records_rejected'], 1)
+        self.assertEqual(Establishment.objects.count(), initial_count)
+
+    def test_reimport_preserves_user_ratings_and_reviews(self):
+        from apps.directory.ingestion.importer import execute_place_import
+        Category.objects.get_or_create(slug='temples', defaults={'name': 'Temples & Heritage Places'})
+        record = [{
+            'source_name': 'osm',
+            'source_id': 'node/999904',
+            'name': 'Heritage Sivan Kovil',
+            'category_slug': 'temples',
+            'town_slug': 'tirunelveli-city',
+            'latitude': 8.728,
+            'longitude': 77.708,
+            'tags': {'amenity': 'place_of_worship', 'religion': 'hindu', 'name': 'Heritage Sivan Kovil'},
+        }]
+        execute_place_import(record, dry_run=False)
+        place = Establishment.objects.get(source_id='node/999904')
+        # Simulate user writing reviews and setting custom rating
+        place.average_rating = 4.8
+        place.review_count = 12
+        place.rating_distribution = {'1': 0, '2': 0, '3': 0, '4': 2, '5': 10}
+        place.status = 'verified'
+        place.save()
+
+        # Re-run import
+        execute_place_import(record, dry_run=False, update_existing=True)
+        place.refresh_from_db()
+        # Must preserve verified status, ratings and review count
+        self.assertEqual(place.average_rating, 4.8)
+        self.assertEqual(place.review_count, 12)
+        self.assertEqual(place.status, 'verified')
+
+    def test_import_runs_admin_api(self):
+        self.client.force_authenticate(user=self.admin)
+        resp = self.client.get(reverse('admin-import-runs'))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+    def test_public_check_duplicates_api(self):
+        resp = self.client.post(reverse('check-duplicates'), {'name': 'Bharath Hospital'}, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIn('potential_duplicates', resp.data)

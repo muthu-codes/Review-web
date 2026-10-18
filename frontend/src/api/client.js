@@ -66,6 +66,10 @@ export const api = {
     },
     getEstablishmentDetail: (id) => request(`/establishments/${id}/`),
     suggestEstablishment: (data) => request('/establishment-suggestions/', { method: 'POST', body: JSON.stringify(data) }),
+    checkDuplicates: (name, town, address = '') => request('/check-duplicates/', {
+      method: 'POST',
+      body: JSON.stringify({ name, town, address }),
+    }),
     getStats: () => request('/stats/'),
   },
 
@@ -120,6 +124,11 @@ export const api = {
     checkDuplicates: (name, town, address = '') => request('/admin/check-duplicates/', {
       method: 'POST',
       body: JSON.stringify({ name, town, address }),
+    }),
+    getImportRuns: () => request('/admin/import-runs/'),
+    triggerImport: (options = {}) => request('/admin/trigger-import/', {
+      method: 'POST',
+      body: JSON.stringify(options),
     }),
   },
 };

@@ -16,19 +16,28 @@ import {
   Activity,
   UserCheck,
   Building,
-  Flag
+  Flag,
+  Database,
+  Play,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function AdminPortalPage() {
   const { user, isAdmin, isModerator } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'reports', 'suggestions', 'csv', 'duplicates'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'reports', 'suggestions', 'csv', 'duplicates', 'ingestion'
   const [overview, setOverview] = useState(null);
   const [reports, setReports] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Ingestion State
+  const [importRuns, setImportRuns] = useState([]);
+  const [isTriggeringImport, setIsTriggeringImport] = useState(false);
+  const [importTriggerSummary, setImportTriggerSummary] = useState(null);
+  const [importTriggerError, setImportTriggerError] = useState('');
 
   // CSV Import State
   const [csvFile, setCsvFile] = useState(null);
@@ -53,15 +62,17 @@ export default function AdminPortalPage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [overviewRes, repRes, sugRes] = await Promise.all([
+      const [overviewRes, repRes, sugRes, runsRes] = await Promise.all([
         api.admin.getDashboardOverview().catch(() => null),
         api.admin.getReportsQueue('pending').catch(() => []),
         api.admin.getSuggestions().catch(() => []),
+        api.admin.getImportRuns().catch(() => []),
       ]);
 
       setOverview(overviewRes);
       setReports(repRes.results || repRes || []);
       setSuggestions(sugRes.results || sugRes || []);
+      setImportRuns(runsRes.results || runsRes || []);
       if (overviewRes?.recent_audit_logs) {
         setAuditLogs(overviewRes.recent_audit_logs);
       }
@@ -69,6 +80,24 @@ export default function AdminPortalPage() {
       console.error("Admin portal load error:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleTriggerImport = async (dryRun = false) => {
+    setIsTriggeringImport(true);
+    setImportTriggerError('');
+    setImportTriggerSummary(null);
+    try {
+      const res = await api.admin.triggerImport({ dry_run: dryRun, source: 'osm' });
+      setImportTriggerSummary(res.summary);
+      const runs = await api.admin.getImportRuns().catch(() => []);
+      setImportRuns(runs.results || runs || []);
+      const overviewRes = await api.admin.getDashboardOverview().catch(() => null);
+      if (overviewRes) setOverview(overviewRes);
+    } catch (err) {
+      setImportTriggerError(err.data?.error || err.message || 'Data ingestion run failed.');
+    } finally {
+      setIsTriggeringImport(false);
     }
   };
 
@@ -172,9 +201,10 @@ export default function AdminPortalPage() {
       >
         {[
           { key: 'overview', label: 'Overview Metrics', icon: Activity },
-          { key: 'reports', label: `Flagged Reviews Queue (${reports.length})`, icon: Flag },
+          { key: 'ingestion', label: `OSM Data Ingestion (${importRuns.length})`, icon: Database },
+          { key: 'reports', label: `Flagged Reviews (${reports.length})`, icon: Flag },
           { key: 'suggestions', label: `Public Suggestions (${suggestions.filter(s => s.status === 'pending').length})`, icon: Building },
-          { key: 'csv', label: 'CSV Directory Ingestion', icon: Upload },
+          { key: 'csv', label: 'CSV Ingestion', icon: Upload },
           { key: 'duplicates', label: 'Duplicate Detector', icon: Search },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -550,6 +580,157 @@ export default function AdminPortalPage() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* TAB 6: DATA INGESTION & COVERAGE */}
+      {activeTab === 'ingestion' && (
+        <div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '24px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Database size={22} color="#2563EB" />
+                <span>OpenStreetMap & Public Data Ingestion</span>
+              </h3>
+              <p style={{ fontSize: '0.88rem', color: '#64748B', marginTop: '4px' }}>
+                Automated directory ingestion across Tirunelveli district filtered strictly by official district boundaries.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => handleTriggerImport(true)}
+                disabled={isTriggeringImport}
+                className="btn-secondary"
+                style={{ fontSize: '0.88rem', padding: '10px 18px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Play size={15} />
+                <span>{isTriggeringImport ? 'Simulating...' : 'Test Dry Run'}</span>
+              </button>
+              <button
+                onClick={() => handleTriggerImport(false)}
+                disabled={isTriggeringImport}
+                className="btn-primary"
+                style={{ fontSize: '0.88rem', padding: '10px 18px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <RefreshCw size={15} className={isTriggeringImport ? 'animate-spin' : ''} />
+                <span>{isTriggeringImport ? 'Importing Places...' : 'Run Live Ingestion'}</span>
+              </button>
+            </div>
+          </div>
+
+          {importTriggerError && (
+            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#991B1B', padding: '14px', borderRadius: '10px', marginBottom: '20px' }}>
+              {importTriggerError}
+            </div>
+          )}
+
+          {importTriggerSummary && (
+            <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', marginBottom: '28px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>
+                  Execution Summary ({importTriggerSummary.dry_run ? 'Dry Run Simulation' : 'Live Database Import'})
+                </h4>
+                <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                  Execution time: {importTriggerSummary.duration_seconds}s
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '18px' }}>
+                <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Features Examined</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800 }}>{importTriggerSummary.features_examined}</div>
+                </div>
+                <div style={{ padding: '12px', background: '#ECFDF5', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#065F46' }}>Records Inserted</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#059669' }}>+{importTriggerSummary.records_inserted}</div>
+                </div>
+                <div style={{ padding: '12px', background: '#EFF6FF', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#1E40AF' }}>Records Updated</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2563EB' }}>~{importTriggerSummary.records_updated}</div>
+                </div>
+                <div style={{ padding: '12px', background: '#FEF2F2', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#991B1B' }}>Rejected / Out-of-Bounds</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#DC2626' }}>{importTriggerSummary.records_rejected}</div>
+                </div>
+              </div>
+
+              {importTriggerSummary.category_counts && Object.keys(importTriggerSummary.category_counts).length > 0 && (
+                <div style={{ marginTop: '14px' }}>
+                  <h5 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                    Category Distribution:
+                  </h5>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {Object.entries(importTriggerSummary.category_counts).map(([cat, cnt]) => (
+                      <span key={cat} style={{ fontSize: '0.78rem', background: '#F1F5F9', color: '#334155', padding: '3px 8px', borderRadius: '6px' }}>
+                        {cat}: <strong>{cnt}</strong>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Ingestion Batches Table */}
+          <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', marginBottom: '16px' }}>
+              Historical Ingestion Batches ({importRuns.length})
+            </h4>
+
+            {importRuns.length === 0 ? (
+              <p style={{ color: '#64748B', fontSize: '0.88rem' }}>No data ingestion batches recorded yet.</p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #E2E8F0', textAlign: 'left', color: '#64748B' }}>
+                      <th style={{ padding: '10px 12px' }}>Timestamp</th>
+                      <th style={{ padding: '10px 12px' }}>Source</th>
+                      <th style={{ padding: '10px 12px' }}>Mode</th>
+                      <th style={{ padding: '10px 12px' }}>Examined</th>
+                      <th style={{ padding: '10px 12px' }}>Inserted</th>
+                      <th style={{ padding: '10px 12px' }}>Updated</th>
+                      <th style={{ padding: '10px 12px' }}>Duration</th>
+                      <th style={{ padding: '10px 12px' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {importRuns.map((run) => (
+                      <tr key={run.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                        <td style={{ padding: '10px 12px', color: '#1E293B', fontWeight: 600 }}>
+                          {new Date(run.started_at).toLocaleString('en-IN')}
+                        </td>
+                        <td style={{ padding: '10px 12px', textTransform: 'uppercase', color: '#475569' }}>
+                          {run.source_name}
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>
+                          {run.is_dry_run ? (
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#FEF3C7', color: '#92400E', padding: '2px 8px', borderRadius: '4px' }}>
+                              DRY RUN
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#ECFDF5', color: '#065F46', padding: '2px 8px', borderRadius: '4px' }}>
+                              LIVE
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>{run.features_examined}</td>
+                        <td style={{ padding: '10px 12px', color: '#059669', fontWeight: 700 }}>+{run.records_inserted}</td>
+                        <td style={{ padding: '10px 12px', color: '#2563EB' }}>~{run.records_updated}</td>
+                        <td style={{ padding: '10px 12px', color: '#64748B' }}>{run.duration_seconds}s</td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: run.status === 'success' ? '#059669' : '#DC2626' }}>
+                            {run.status.toUpperCase()}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

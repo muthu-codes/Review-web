@@ -89,6 +89,9 @@ python manage.py migrate
 # Populate official Tirunelveli District reference taxonomies (categories, towns, localities)
 python manage.py populate_reference_data
 
+# Ingest authentic establishments across Tirunelveli District from OpenStreetMap
+python manage.py import_tirunelveli_places
+
 # Run Django development server
 python manage.py runserver 8000
 ```
@@ -124,13 +127,19 @@ cd backend
 python manage.py test apps.accounts.tests apps.directory.tests apps.reviews.tests apps.complaints.tests
 ```
 
-**Tests verified and passing:**
+**Tests verified and passing (30 tests across all apps):**
 - Google authentication and Bearer JWT token verification
 - Unauthenticated access denial on protected endpoints
 - Listing retrieval, filtering by category and town, and pagination
 - Strict alphabetical sorting (A to Z) and reverse alphabetical sorting (Z to A)
 - Bilingual search (English and Tamil queries)
-- Duplicate establishment detection
+- Duplicate establishment detection and real-time suggestion duplicate warning
+- OpenStreetMap point-in-polygon boundary validation against official Tirunelveli boundary
+- OpenStreetMap tag to directory category mapping (amenity, shop, tourism, leisure, etc.)
+- Ingestion pipeline dry-run simulation mode (verifies validation without writing changes)
+- Ingestion pipeline live idempotent upsert (updates existing without creating duplicates)
+- Ingestion boundary exclusion (rejects places outside Tirunelveli boundary)
+- Preservation of existing user ratings, review counts, and reviews during re-import
 - Lawful CSV import validation and ensuring imported records default to unverified status
 - Place suggestion submission by citizens and administrator approval
 - Five-star rating range validation (rejection of scores < 1 or > 5)
@@ -139,6 +148,7 @@ python manage.py test apps.accounts.tests apps.directory.tests apps.reviews.test
 - Recalculation of average rating and 1-5 star distributions strictly from published reviews
 - Review reporting workflow
 - Complaint-channel public visibility rules (strictly verified and active channels displayed, internal administrative notes hidden)
+- Administrative Ingestion API endpoints (`/api/v1/admin/import-runs/` and `/api/v1/admin/trigger-import/`)
 
 ---
 

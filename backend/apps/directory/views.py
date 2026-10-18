@@ -4,14 +4,15 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from .models import (
     Category, SubCategory, Town, Locality,
-    Establishment, EstablishmentSuggestion, ListingCorrection
+    Establishment, EstablishmentSuggestion, ListingCorrection, DataImportRun
 )
 from .serializers import (
     CategorySerializer, SubCategorySerializer, TownSerializer, LocalitySerializer,
     EstablishmentListSerializer, EstablishmentDetailSerializer, EstablishmentWriteSerializer,
-    EstablishmentSuggestionSerializer, ListingCorrectionSerializer
+    EstablishmentSuggestionSerializer, ListingCorrectionSerializer, DataImportRunSerializer
 )
 from .services import process_csv_import, detect_potential_duplicates
+from .ingestion import fetch_from_file, get_default_seed_file_path, execute_place_import
 
 class CategoryListView(generics.ListAPIView):
     queryset = Category.objects.all().order_by('display_order', 'name')
@@ -214,7 +215,8 @@ class CSVImportView(views.APIView):
         return Response(report, status=status.HTTP_200_OK)
 
 class DuplicateCheckView(views.APIView):
-    permission_classes = [permissions.IsAdminUser]
+    # Allow any user (authenticated or guest filling out suggest-place) to check duplicates
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         name = request.data.get('name', '')
@@ -227,15 +229,59 @@ class DuplicateCheckView(views.APIView):
         duplicates = detect_potential_duplicates(name, town_id, address)
         return Response({'potential_duplicates': duplicates})
 
+class DataImportRunListView(generics.ListAPIView):
+    queryset = DataImportRun.objects.all().order_by('-started_at')
+    serializer_class = DataImportRunSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+class TriggerDataImportView(views.APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request):
+        dry_run = request.data.get('dry_run', False)
+        source = request.data.get('source', 'osm')
+        limit = request.data.get('limit')
+        if limit:
+            try:
+                limit = int(limit)
+            except ValueError:
+                limit = None
+
+        seed_file = get_default_seed_file_path()
+        try:
+            records = fetch_from_file(seed_file)
+        except Exception as e:
+            return Response({'error': f"Failed to load dataset: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        import_run, summary = execute_place_import(
+            records=records,
+            source_name=source,
+            dry_run=dry_run,
+            update_existing=True,
+            limit=limit,
+            user=request.user
+        )
+
+        return Response({
+            'message': 'Ingestion completed successfully.',
+            'run_id': str(import_run.id),
+            'summary': summary
+        }, status=status.HTTP_200_OK)
+
 class DirectoryStatsView(views.APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         from apps.reviews.models import Review
+        total_est = Establishment.objects.filter(status__in=['verified', 'pending_verification']).count()
+        verified_est = Establishment.objects.filter(status='verified').count()
+        pending_est = Establishment.objects.filter(status='pending_verification').count()
         return Response({
-            'total_establishments': Establishment.objects.filter(status__in=['verified', 'pending_verification']).count(),
-            'verified_establishments': Establishment.objects.filter(status='verified').count(),
+            'total_establishments': total_est,
+            'verified_establishments': verified_est,
+            'pending_establishments': pending_est,
             'total_reviews': Review.objects.filter(status='published').count(),
             'total_categories': Category.objects.count(),
             'total_towns': Town.objects.count(),
+            'total_import_runs': DataImportRun.objects.count(),
         })

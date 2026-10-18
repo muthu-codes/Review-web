@@ -129,6 +129,10 @@ export default function EstablishmentDetailPage() {
     website,
     business_hours,
     verification_status,
+    source_name,
+    source_attribution,
+    source_url,
+    source_id,
     average_rating = 0,
     review_count = 0,
     rating_distribution = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
@@ -385,6 +389,61 @@ export default function EstablishmentDetailPage() {
                   })}
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* Data Provenance Card */}
+          <div
+            className="glass-panel"
+            style={{
+              padding: '20px',
+              borderRadius: '20px',
+              background: '#FFFFFF',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
+              marginTop: '20px',
+              fontSize: '0.82rem',
+              color: '#64748B',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0F172A', fontWeight: 700, marginBottom: '8px' }}>
+              <ShieldCheck size={16} color="#2563EB" />
+              <span>Data Provenance & Trust</span>
+            </div>
+            <p style={{ margin: '0 0 10px 0', lineHeight: '1.4' }}>
+              {source_name === 'osm' ? (
+                <>
+                  Imported from <strong>OpenStreetMap</strong> under the{' '}
+                  <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener noreferrer" style={{ color: '#2563EB' }}>
+                    Open Database License (ODbL)
+                  </a>.
+                </>
+              ) : (
+                <>Directory listing contributed and maintained via citizen suggestions and review.</>
+              )}
+            </p>
+            {source_attribution && (
+              <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '8px' }}>
+                {source_attribution}
+              </div>
+            )}
+            {source_url && (
+              <a
+                href={source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  color: '#2563EB',
+                  fontSize: '0.78rem',
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                }}
+              >
+                <span>View Source Record</span>
+                <ExternalLink size={11} />
+              </a>
             )}
           </div>
         </div>

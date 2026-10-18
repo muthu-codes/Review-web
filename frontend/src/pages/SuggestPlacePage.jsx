@@ -25,6 +25,7 @@ export default function SuggestPlacePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [duplicateWarnings, setDuplicateWarnings] = useState([]);
 
   useEffect(() => {
     Promise.all([api.directory.getCategories(), api.directory.getTowns()])
@@ -36,6 +37,24 @@ export default function SuggestPlacePage() {
       })
       .catch((err) => console.error("Error loading categories/towns:", err));
   }, []);
+
+  // Real-time duplicate check
+  useEffect(() => {
+    if (!name.trim() || name.trim().length < 3) {
+      setDuplicateWarnings([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      api.directory.checkDuplicates(name.trim(), townId)
+        .then((res) => {
+          setDuplicateWarnings(res.potential_duplicates || []);
+        })
+        .catch(() => {});
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [name, townId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -192,6 +211,45 @@ export default function SuggestPlacePage() {
                   />
                 </div>
               </div>
+
+              {/* Real-Time Duplicate Warning Notice */}
+              {duplicateWarnings.length > 0 && (
+                <div
+                  style={{
+                    background: '#FFFBEB',
+                    border: '1px solid #FDE68A',
+                    borderRadius: '10px',
+                    padding: '12px 16px',
+                    fontSize: '0.84rem',
+                    color: '#92400E',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, marginBottom: '6px' }}>
+                    <AlertCircle size={15} color="#D97706" />
+                    <span>Similar Place Already in Directory</span>
+                  </div>
+                  <p style={{ margin: '0 0 6px 0' }}>
+                    We found {duplicateWarnings.length} existing listing(s) that match this name:
+                  </p>
+                  <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                    {duplicateWarnings.slice(0, 3).map((dup, i) => (
+                      <li key={i} style={{ marginBottom: '4px' }}>
+                        <Link
+                          to={`/establishments/${dup.establishment_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: '#2563EB', fontWeight: 600, textDecoration: 'underline' }}
+                        >
+                          {dup.name} ({dup.town})
+                        </Link>
+                        <span style={{ fontSize: '0.78rem', color: '#B45309', marginLeft: '6px' }}>
+                          — {dup.reason}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Category & Town */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
