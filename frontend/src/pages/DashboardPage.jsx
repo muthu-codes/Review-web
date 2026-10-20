@@ -116,9 +116,47 @@ export default function DashboardPage() {
   );
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 20px 60px 20px' }}>
+    <div className="dashboard-page" style={{ width: '100%', maxWidth: '1280px', minWidth: 0, margin: '0 auto', padding: '0 16px 60px', boxSizing: 'border-box' }}>
+      <style>{`
+        .dashboard-page, .dashboard-page * { box-sizing: border-box; }
+        .dashboard-search-form { width: 100%; }
+        .dashboard-search-inner { width: 100%; min-width: 0; gap: 8px; }
+        .dashboard-search-input { flex: 1 1 0; width: 0; min-width: 0; }
+        .dashboard-stats { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 !important; width: 100%; }
+        .dashboard-stat { min-width: 0; padding: 8px 6px; text-align: center; }
+        .dashboard-stat:not(:last-child) { border-right: 1px solid #E2E8F0; }
+        .dashboard-section-heading { display: flex; align-items: flex-start !important; justify-content: space-between; gap: 16px; }
+        .dashboard-section-heading > div { min-width: 0; }
+        .dashboard-section-heading h2 { line-height: 1.3; }
+        .dashboard-section-heading p { line-height: 1.5; }
+        .dashboard-view-all { flex-shrink: 0; white-space: nowrap; }
+        .dashboard-suggest-banner { width: 100%; min-width: 0; padding: clamp(16px, 4vw, 40px) clamp(12px, 3vw, 32px) !important; }
+        .dashboard-suggest-copy { flex: 1 1 320px; min-width: 0; }
+        .dashboard-suggest-button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; justify-content: center; text-align: center; }
+        @media (max-width: 700px) {
+          .dashboard-page { padding-left: 12px !important; padding-right: 12px !important; }
+          .dashboard-hero { padding-top: 36px !important; }
+          .dashboard-search-inner { border-radius: 20px !important; flex-wrap: wrap; padding: 10px !important; }
+          .dashboard-search-input { flex: 1 1 calc(100% - 36px); width: auto; font-size: 16px !important; }
+          .dashboard-search-button { flex: 1 1 100%; width: 100%; }
+          .dashboard-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .dashboard-stat:nth-child(odd) { border-right: 1px solid #E2E8F0; }
+          .dashboard-stat:nth-child(even) { border-right: 0; }
+          .dashboard-stat:nth-child(-n+2) { border-bottom: 1px solid #E2E8F0; }
+          .dashboard-section-heading { flex-wrap: wrap; }
+          .dashboard-section-heading h2 { font-size: 1.25rem !important; }
+          .dashboard-suggest-banner { gap: 16px !important; }
+          .dashboard-suggest-button { width: 100%; }
+        }
+        @media (max-width: 380px) {
+          .dashboard-page { padding-left: 10px !important; padding-right: 10px !important; }
+          .dashboard-stat { padding-left: 3px; padding-right: 3px; }
+          .dashboard-stat-label { font-size: 0.68rem !important; }
+        }
+      `}</style>
       {/* Hero Section */}
       <section
+        className="dashboard-hero"
         style={{
           padding: '60px 0 40px 0',
           textAlign: 'center',
@@ -160,6 +198,7 @@ export default function DashboardPage() {
 
         {/* Hero Search Bar */}
         <form
+          className="dashboard-search-form"
           onSubmit={handleHeroSearch}
           style={{
             maxWidth: '620px',
@@ -167,11 +206,12 @@ export default function DashboardPage() {
           }}
         >
           <div
-            className="glass-panel"
+            className="glass-panel dashboard-search-inner"
             style={{
               display: 'flex',
               alignItems: 'center',
-              padding: '8px 10px 8px 18px',
+              minWidth: 0,
+              padding: '8px 10px 8px 16px',
               background: '#FFFFFF',
               borderRadius: '999px',
               boxShadow: '0 12px 35px -5px rgba(37, 99, 235, 0.12), 0 0 0 1px rgba(226, 232, 240, 0.8)',
@@ -179,6 +219,7 @@ export default function DashboardPage() {
           >
             <Search size={20} color="#2563EB" style={{ marginRight: '12px', flexShrink: 0 }} />
             <input
+              className="dashboard-search-input"
               type="text"
               placeholder="Search by place name, school, hospital, temple, or locality..."
               value={heroSearch}
@@ -187,14 +228,15 @@ export default function DashboardPage() {
                 border: 'none',
                 background: 'transparent',
                 outline: 'none',
-                width: '100%',
+                minWidth: 0,
+                boxSizing: 'border-box',
                 fontSize: '1rem',
                 color: '#0F172A',
               }}
             />
             <button
               type="submit"
-              className="btn-primary"
+              className="btn-primary dashboard-search-button"
               style={{
                 borderRadius: '999px',
                 padding: '10px 24px',
@@ -221,11 +263,14 @@ export default function DashboardPage() {
         {/* Real Live Stats bar */}
         {stats && (
           <div
+            className="dashboard-stats"
             style={{
-              display: 'flex',
-              flexWrap: 'wrap',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
               justifyContent: 'center',
-              gap: '24px',
+              gap: 0,
+              width: '100%',
+              boxSizing: 'border-box',
               marginTop: '40px',
               padding: '14px 24px',
               background: 'rgba(255, 255, 255, 0.75)',
@@ -235,24 +280,21 @@ export default function DashboardPage() {
               margin: '36px auto 0 auto',
             }}
           >
-            <div style={{ textAlign: 'center' }}>
+            <div className="dashboard-stat">
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A' }}>{stats.total_establishments}</div>
-              <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>Active Places</div>
+              <div className="dashboard-stat-label" style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>Active Places</div>
             </div>
-            <div style={{ width: '1px', background: '#E2E8F0' }} />
-            <div style={{ textAlign: 'center' }}>
+            <div className="dashboard-stat">
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#059669' }}>{stats.verified_establishments}</div>
-              <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>Verified Listings</div>
+              <div className="dashboard-stat-label" style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>Verified Listings</div>
             </div>
-            <div style={{ width: '1px', background: '#E2E8F0' }} />
-            <div style={{ textAlign: 'center' }}>
+            <div className="dashboard-stat">
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#2563EB' }}>{stats.total_reviews}</div>
-              <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>Community Reviews</div>
+              <div className="dashboard-stat-label" style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>Community Reviews</div>
             </div>
-            <div style={{ width: '1px', background: '#E2E8F0' }} />
-            <div style={{ textAlign: 'center' }}>
+            <div className="dashboard-stat">
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#D97706' }}>{stats.total_towns}</div>
-              <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>District Towns</div>
+              <div className="dashboard-stat-label" style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>District Towns</div>
             </div>
           </div>
         )}
@@ -260,7 +302,7 @@ export default function DashboardPage() {
 
       {/* SECTION 1: Browse All Categories */}
       <section style={{ margin: '48px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <div className="dashboard-section-heading" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
           <div>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A' }}>
               1. Browse All Categories
@@ -269,7 +311,7 @@ export default function DashboardPage() {
               Explore registered establishments and public services organized by category
             </p>
           </div>
-          <Link to="/categories" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#2563EB', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Link className="dashboard-view-all" to="/categories" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#2563EB', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span>View All</span>
             <ChevronRight size={16} />
           </Link>
@@ -546,7 +588,7 @@ export default function DashboardPage() {
 
       {/* SECTION 9: Suggest a Missing Place Card Banner */}
       <section
-        className="glass-panel"
+        className="glass-panel dashboard-suggest-banner"
         style={{
           margin: '60px 0 20px 0',
           padding: '40px 32px',
@@ -560,7 +602,7 @@ export default function DashboardPage() {
           gap: '24px',
         }}
       >
-        <div style={{ maxWidth: '640px' }}>
+        <div className="dashboard-suggest-copy" style={{ maxWidth: '640px' }}>
           <div className="tricolour-badge" style={{ marginBottom: '12px' }}>
             <span>Community Directory Growth</span>
           </div>
@@ -572,7 +614,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <Link to="/suggest-place" className="btn-saffron" style={{ padding: '12px 28px', fontSize: '1rem', borderRadius: '999px' }}>
+        <Link to="/suggest-place" className="btn-saffron dashboard-suggest-button" style={{ padding: '12px 20px', fontSize: '1rem', borderRadius: '999px' }}>
           <PlusCircle size={18} />
           <span>Suggest an Establishment</span>
         </Link>

@@ -9,10 +9,10 @@
   --bg-secondary: #F1F5F9;
   --bg-milky-glass: rgba(255, 255, 255, 0.82);
   --bg-milky-glass-subtle: rgba(255, 255, 255, 0.65);
-  
+
   --border-glass: rgba(255, 255, 255, 0.85);
   --border-subtle: rgba(226, 232, 240, 0.8);
-  
+
   --text-main: #0F172A;
   --text-muted: #475569;
   --text-subtle: #94A3B8;
@@ -21,11 +21,11 @@
   --saffron: #FF9933;
   --saffron-light: #FFF7ED;
   --saffron-hover: #EA580C;
-  
+
   --navy: #1E3A8A;
   --tamirabarani-blue: #2563EB;
   --blue-light: #EFF6FF;
-  
+
   --green: #138808;
   --green-light: #F0FDF4;
 
@@ -34,38 +34,104 @@
   --shadow-float: 0 20px 40px -10px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.9);
   --shadow-glow-saffron: 0 4px 20px -2px rgba(255, 153, 51, 0.25);
   --shadow-glow-blue: 0 4px 20px -2px rgba(37, 99, 235, 0.25);
-  
+
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 20px;
   --radius-xl: 28px;
 }
 
-* {
+/* Predictable sizing prevents padding and borders from widening mobile layouts. */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+}
+
+html {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow-x: clip;
   font-family: var(--font-body);
   background-color: var(--bg-primary);
-  background-image: 
+  background-image:
     radial-gradient(at 0% 0%, rgba(255, 153, 51, 0.06) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(37, 99, 235, 0.06) 0px, transparent 50%),
     radial-gradient(at 50% 100%, rgba(19, 136, 8, 0.04) 0px, transparent 50%);
   background-attachment: fixed;
   color: var(--text-main);
   line-height: 1.6;
-  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, h4, h5, h6 {
+/* Prevent common flex/grid children from forcing the page wider than the screen. */
+#root {
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+}
+
+img,
+video {
+  height: auto;
+}
+
+input,
+button,
+select,
+textarea {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-heading);
   font-weight: 700;
   color: var(--text-main);
   line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+p,
+a,
+span,
+label {
+  overflow-wrap: anywhere;
 }
 
 /* Milky-White Glassmorphism */
@@ -120,23 +186,31 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Buttons */
-.btn-primary {
+.btn-primary,
+.btn-secondary,
+.btn-saffron {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
-  color: #FFFFFF;
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 0.95rem;
   padding: 10px 22px;
   border-radius: var(--radius-md);
-  border: none;
   cursor: pointer;
-  box-shadow: var(--shadow-glow-blue);
   transition: all 0.2s ease;
   text-decoration: none;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+  color: #FFFFFF;
+  border: none;
+  box-shadow: var(--shadow-glow-blue);
 }
 
 .btn-primary:hover {
@@ -146,21 +220,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
   background: rgba(255, 255, 255, 0.9);
   color: var(--text-main);
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 0.95rem;
-  padding: 10px 22px;
-  border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
 }
 
 .btn-secondary:hover {
@@ -171,22 +233,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-saffron {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
   background: linear-gradient(135deg, #FF9933 0%, #EA580C 100%);
   color: #FFFFFF;
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 0.95rem;
-  padding: 10px 22px;
-  border-radius: var(--radius-md);
   border: none;
-  cursor: pointer;
   box-shadow: var(--shadow-glow-saffron);
-  transition: all 0.2s ease;
-  text-decoration: none;
 }
 
 .btn-saffron:hover {
@@ -195,10 +245,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Official Verification Badges */
-.badge-official {
-  background: #ECFDF5;
-  color: #065F46;
-  border: 1px solid #A7F3D0;
+.badge-official,
+.badge-checked,
+.badge-listed {
   font-size: 0.75rem;
   font-weight: 600;
   padding: 4px 10px;
@@ -206,43 +255,76 @@ h1, h2, h3, h4, h5, h6 {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.badge-official {
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
 }
 
 .badge-checked {
   background: #EFF6FF;
   color: #1E40AF;
   border: 1px solid #BFDBFE;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
 }
 
 .badge-listed {
   background: #F1F5F9;
   color: #475569;
   border: 1px solid #CBD5E1;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
 }
 
 /* Accessibility: Focus visible outline */
-button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
   outline: 2px solid var(--tamirabarani-blue);
   outline-offset: 2px;
 }
 
+/* Keep wide content from creating page-level horizontal scrolling. */
+@media (max-width: 768px) {
+  body {
+    background-attachment: scroll;
+  }
+
+  /* Allow long text to wrap without changing desktop header sizing. */
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  span,
+  label {
+    min-width: 0;
+  }
+
+  .glass-panel,
+  .glass-panel-subtle {
+    min-width: 0;
+  }
+
+  button,
+  .btn-primary,
+  .btn-secondary,
+  .btn-saffron {
+    max-width: 100%;
+  }
+}
+
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

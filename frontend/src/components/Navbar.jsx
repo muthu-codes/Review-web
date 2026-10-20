@@ -83,6 +83,9 @@ export default function Navbar() {
       style={{
         position: 'sticky',
         top: 0,
+        left: 0,
+        width: '100%',
+        boxSizing: 'border-box',
         zIndex: 50,
         background: 'rgba(255, 255, 255, 0.88)',
         backdropFilter: 'blur(20px)',
@@ -95,8 +98,11 @@ export default function Navbar() {
       <div className="tricolour-accent-bar" />
 
       <div
+        className="navbar-inner"
         style={{
           maxWidth: '1280px',
+          width: '100%',
+          boxSizing: 'border-box',
           margin: '0 auto',
           padding: '12px 20px',
           display: 'flex',
@@ -112,9 +118,13 @@ export default function Navbar() {
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
+            flexShrink: 0,
+            minWidth: 0,
             textDecoration: 'none',
             color: 'inherit',
           }}
+          className="navbar-brand"
+        
         >
           <div
             style={{
@@ -148,7 +158,7 @@ export default function Navbar() {
             </div>
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="navbar-brand-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
               <span style={{ fontSize: '1.35rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#0F172A', fontFamily: 'var(--font-heading)' }}>
                 Review Web
               </span>
@@ -167,7 +177,7 @@ export default function Navbar() {
                 Tirunelveli
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#64748B' }}>
+            <div className="navbar-brand-location" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#64748B' }}>
               <MapPin size={12} color="#EA580C" />
               <span>திருநெல்வேலி மாவட்டம், Tamil Nadu</span>
             </div>
@@ -422,9 +432,13 @@ export default function Navbar() {
             cursor: 'pointer',
             padding: '6px',
             color: '#0F172A',
-            display: 'block',
+            display: 'none',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
           }}
           className="mobile-toggle"
+          aria-expanded={mobileMenuOpen}
         >
           {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -529,13 +543,62 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* Media query styling for responsive Navbar */}
+      {/* Responsive navbar: keep desktop layout, use a menu on smaller screens. */}
       <style>{`
+        .navbar-brand-title > span:first-child {
+          white-space: nowrap;
+        }
+
+        .navbar-brand-title > span:last-child {
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+
+        @media (max-width: 767px) {
+          .desktop-search {
+            display: none !important;
+          }
+
+          .desktop-nav {
+            display: none !important;
+          }
+
+          .mobile-toggle {
+            display: flex !important;
+          }
+
+          .navbar-inner {
+            gap: 10px !important;
+            padding: 10px 14px !important;
+          }
+
+          .navbar-brand {
+            gap: 9px !important;
+          }
+
+          .navbar-brand-location {
+            white-space: nowrap;
+          }
+
+          .mobile-drawer {
+            width: 100%;
+            box-sizing: border-box;
+          }
+        }
+
         @media (min-width: 768px) {
-          .desktop-search { display: block !important; }
-          .desktop-nav { display: flex !important; }
-          .mobile-toggle { display: none !important; }
-          .mobile-drawer { display: none !important; }
+          .desktop-search {
+            display: block !important;
+          }
+
+          .desktop-nav {
+            display: flex !important;
+          }
+
+          .mobile-toggle,
+          .mobile-drawer {
+            display: none !important;
+          }
         }
       `}</style>
     </header>
